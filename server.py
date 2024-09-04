@@ -19,13 +19,14 @@ class SecurityModel(ap.Model):
         self.guard.setup()
         self.cameras.setup()
         self.drone.setup()
-        
+
         for idx, camera in enumerate(self.cameras):
             camera.id = idx  # Assign ID as Camera_1, Camera_2, etc.
 
-
     def step(self):
-        pass
+        self.guard.step()
+        self.cameras.step()
+        self.drone.step()
 
 
 @app.route("/")
