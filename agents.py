@@ -1,6 +1,5 @@
 import agentpy as ap
 from owlready2 import *
-import random
 from flask import jsonify
 
 
@@ -27,25 +26,63 @@ class Guard(ap.Agent):
     def setup(self):
         self.agentType = 1
         self.alert_checks = 0
-        self.actions = [self.basic_analysis, self.panoramic_analysis, self.final_alert]
+        self.actions = [
+            self.basic_analysis,
+            self.panoramic_analysis,
+            self.final_alert,
+            self.drone_control,
+            self.drone_end_control,
+        ]
         self.rules = [
             self.rule_basic_check,
             self.rule_panoramic_check,
             self.rule_final_alert,
+            self.rule_drone_end_control,
+            self.rule_drone_control,
         ]
         self.alarmCount_begin = 0
-        self.droneOverride = False
+        self.drone_override = False
         self.alarmCount_end = 0
-        self.callTheCops = False
+        self.call_the_cops = False
+        self.drone_control_timer = 0
+        self.initialize_panoramic_view = False
 
     def info_receptor(self, message):
         print(f"Guard received message: {message}")
 
+    def drone_control(self):
+        self.model.drone[0].pos = [0, 50, 0]
+        self.drone_control_timer += 1
+        self.drone_override = True
+
+    def rule_drone_control(self, act):
+        return (
+            self.drone_override == False
+            and self.initialize_panoramic_view == True
+            and self.drone_control_timer < 15
+            and act == self.drone_control
+        )
+
+    def drone_end_control(self):
+        self.model.drone[0].pos = None
+        self.drone_override = False
+        self.initialize_panoramic_view = False
+        self.drone_control_timer = 0
+
+    def rule_drone_end_control(self, act):
+        return (
+            self.drone_override == True
+            and self.drone_control_timer > 15
+            and act == self.drone_end_control
+        )
+
     def panoramic_analysis(self):
-        self.droneOverride = True
+        self.initialize_panoramic_view = True
+        self.drone_override = True
 
     def basic_analysis(self):
-        self.droneOverride = False
+        self.drone_override = False
+        self.initialize_panoramic_view = False
 
     def rule_basic_check(self, act):
         return self.alert_checks < 3 and act == self.basic_analysis
@@ -55,15 +92,11 @@ class Guard(ap.Agent):
 
     def final_alert(self):
         print("Alerta Final !!!!!")
-        self.callTheCops = True
+        self.call_the_cops = True
         return
 
     def rule_final_alert(self, act):
         return self.alarmCount_end > 0 and act == self.final_alert
-
-    def control_drone(self):
-        print("Drone, go to the location!")
-        self.model.drone[0].info_receptor("Go to the location!")
 
     def increase_alarm_count_begin(self):
         self.alarmCount_begin += 1
@@ -85,9 +118,11 @@ class Guard(ap.Agent):
             {
                 "countAlarm_begin": self.alarmCount_begin,
                 "countAlarm_end": self.alarmCount_end,
-                "droneOverride": self.droneOverride,
-                "callTheCops": self.callTheCops,
+                "droneOverride": self.drone_override,
+                "callTheCops": self.call_the_cops,
                 "alert_checks": self.alert_checks,
+                "drone_timer": self.drone_control_timer,
+                "initialize_panoramic_view": self.initialize_panoramic_view,
             }
         )
 
@@ -137,12 +172,11 @@ class Camera(ap.Agent):
 
 class Drone(ap.Agent):
     def setup(self):
-
         self.agentType = 3
         self.actions = [self.alert_guard, self.alert_guard_final]
         self.rules = [self.rule_alert_guard, self.rule_alert_guard_final]
         self.detection = None
-        self.pos = [0, 10, 0]
+        self.pos = None
         self.panoramic = False
 
     def rule_alert_guard(self, action):

@@ -14,11 +14,11 @@ def home():
     return "Hello \t Welcome to the Drone Security System!"
 
 
-@app.route("/test")
+@app.route("/test")  # Testing route
 def test():
-    model.guard[0].alarmCount_end += 1
-    model.step()
-    return model.guard[0].give_info().json
+
+    model.guard[0].panoramic_analysis()
+    return model.guard[0].give_info()
 
 
 @app.route("/agents_info")
