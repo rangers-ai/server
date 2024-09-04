@@ -1,8 +1,7 @@
 # simulation.py
 from flask import Blueprint, request, jsonify
 from agents import Guard, Camera, Drone
-import threading
-import queue
+
 
 simulation = Blueprint("simulation", __name__)
 
