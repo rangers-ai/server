@@ -26,14 +26,11 @@ def process_image():
         # Get the JSON payload from the request
         data = request.get_json()
 
-        # Log the parsed JSON data
-        #print(f"Parsed JSON: {data}")
-
         # Extract the base64 image data
         base64_image = data.get('image')
 
         if not base64_image:
-            return jsonify({"error": "No image data provided"}), 401
+            return jsonify({"error": "No image data provided"}), 400
 
         # Prepare the payload for the OpenAI API request
         payload = {
@@ -44,7 +41,7 @@ def process_image():
                     "content": [
                         {
                             "type": "text",
-                            "text": "If in the image there is a model of a cop, return the word YES, else return the word NO"
+                            "text": "Detect whether or not you see a red ball. Only say YES or NO."
                         },
                         {
                             "type": "image_url",
@@ -76,5 +73,4 @@ def process_image():
         }), 200
 
     except Exception as e:
-        print(e)
         return jsonify({"error": str(e)}), 500
